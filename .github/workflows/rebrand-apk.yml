@@ -78,7 +78,7 @@ jobs:
           keytool -genkeypair -v \
             -storetype PKCS12 \
             -keystore pocketpal-release-key.keystore \
-            -alias pocketpal_key_alias \
+            -alias kusbots_key_alias \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
