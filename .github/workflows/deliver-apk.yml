@@ -18,8 +18,15 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git checkout -b apk-delivery
+          
+          # Initialize Git LFS
+          git lfs install
+          git lfs track "*.apk"
+          git add .gitattributes
+          
+          git checkout -b apk-delivery || git checkout apk-delivery
+          
           # Add the APK (force if it's in gitignore)
           git add -f kus_bots_v1.12.3.apk
-          git commit -m "Deliver kus_bots_v1.12.3.apk"
+          git commit -m "Deliver kus_bots_v1.12.3.apk via LFS"
           git push origin apk-delivery -f
