@@ -21,6 +21,7 @@ import {Theme} from './src/utils/types';
 import {l10n, initLocale} from './src/locales';
 import {L10nContext} from './src/utils';
 import {ROUTES} from './src/utils/navigationConstants';
+import {newsScoutService} from './src/services/NewsScoutService';
 
 import {
   SidebarContent,
@@ -59,9 +60,12 @@ const App = observer(() => {
   const styles = createStyles(theme);
   const currentL10n = l10n[uiStore.language];
 
-  // Initialize locale with the current language
+  // Initialize locale and start services
   React.useEffect(() => {
     initLocale(uiStore.language);
+    newsScoutService.start();
+
+    return () => newsScoutService.stop();
   }, []);
 
   return (

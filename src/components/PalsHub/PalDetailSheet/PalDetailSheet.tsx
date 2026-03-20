@@ -1,5 +1,5 @@
-import React, {useState, useEffect, useContext} from 'react';
-import {View, Image, Alert, Linking} from 'react-native';
+import React, {useState, useEffect, useContext, useMemo} from 'react';
+import {View, Image, Alert, Linking, StyleSheet, ScrollView} from 'react-native';
 
 import {observer} from 'mobx-react-lite';
 import {Text, Button, Surface, Divider} from 'react-native-paper';
@@ -26,6 +26,9 @@ import {
   shouldShowPalContent,
   getPremiumInfoText,
 } from '../../../utils/palshub-display';
+import {revenueService} from '../../../services/RevenueService';
+import {newsScoutService} from '../../../services/NewsScoutService';
+import EmploymentContract from './EmploymentContract';
 
 interface PalDetailSheetProps {
   pal: PalsHubPal | null;
@@ -42,6 +45,7 @@ export const PalDetailSheet: React.FC<PalDetailSheetProps> = observer(
     const [error, setError] = useState<string | null>(null);
     const [detailedPal, setDetailedPal] = useState<PalsHubPal | null>(null);
     const [_isFetchingDetails, setIsFetchingDetails] = useState(false);
+    const [isContractVisible, setIsContractVisible] = useState(false);
 
     // Use detailed pal information if available, otherwise fall back to basic pal
     const displayPal = detailedPal || pal;
@@ -89,8 +93,25 @@ export const PalDetailSheet: React.FC<PalDetailSheetProps> = observer(
     );
 
     const handleAction = async () => {
-      // This function is only called for free pals or owned pals
-      // Use detailed pal if available for download
+    // 0. Revenue Check: Gating for Agentic Specialists
+    const isPremiumPal = displayPal.category === 'Specialist' || displayPal.category === 'Expert';
+    if (isPremiumPal && revenueService.currentTier !== 'SOVEREIGN' && !isContractVisible) {
+      console.log('[RevenueGate] Specialist requires Agentic Tier.');
+      // This should ideally navigate to an upgrade screen or show a specific message
+      Alert.alert(
+        l10n.palsScreen.palDetailSheet.premiumRequiredTitle,
+        l10n.palsScreen.palDetailSheet.premiumRequiredMessage,
+        [{text: l10n.common.ok, onPress: onClose}],
+      );
+      return;
+    }
+
+    if (!isContractVisible) {
+      setIsContractVisible(true);
+      return;
+    }
+
+      // This function is only called for free pals or owned pals via the contract 'Sign' button
       const palToDownload = displayPal;
       try {
         setIsLoading(true);
@@ -211,134 +232,147 @@ export const PalDetailSheet: React.FC<PalDetailSheetProps> = observer(
         onClose={onClose}
         title={displayPal.title}
         snapPoints={['85%']}>
-        <Sheet.ScrollView contentContainerStyle={styles.scrollContent}>
-          {renderHeader()}
-          <Divider style={styles.divider} />
-          {renderStats()}
-          <Divider style={styles.divider} />
+        {!isContractVisible ? (
+          <Sheet.ScrollView contentContainerStyle={styles.scrollContent}>
+            {renderHeader()}
+            <Divider style={styles.divider} />
+            {renderStats()}
+            <Divider style={styles.divider} />
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {l10n.palsScreen.palDetailSheet.description}
-            </Text>
-            <Text style={styles.description}>
-              {displayPal.description ||
-                l10n.palsScreen.palDetailSheet.noDescriptionAvailable}
-            </Text>
-          </View>
-
-          {displayPal.categories && displayPal.categories.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
-                {l10n.palsScreen.palDetailSheet.categories}
+                {l10n.palsScreen.palDetailSheet.description}
               </Text>
-              <View style={styles.categoriesContainer}>
-                {displayPal.categories.map((category, index) => (
-                  <View key={index} style={styles.category}>
-                    <Text style={styles.categoryText}>{category.name}</Text>
-                  </View>
-                ))}
-              </View>
+              <Text style={styles.description}>
+                {displayPal.description ||
+                  l10n.palsScreen.palDetailSheet.noDescriptionAvailable}
+              </Text>
             </View>
-          )}
 
-          {displayPal.tags && displayPal.tags.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {l10n.palsScreen.palDetailSheet.tags}
-              </Text>
-              <View style={styles.tagsContainer}>
-                {displayPal.tags.map((tag, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag.name}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {canViewContent && displayPal.system_prompt && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                {l10n.palsScreen.palDetailSheet.systemPrompt}
-              </Text>
-              <View style={styles.systemPromptContainer}>
-                <Text style={styles.systemPrompt}>
-                  {displayPal.system_prompt}
+            {displayPal.categories && displayPal.categories.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  {l10n.palsScreen.palDetailSheet.categories}
                 </Text>
+                <View style={styles.categoriesContainer}>
+                  {displayPal.categories.map((category, index) => (
+                    <View key={index} style={styles.category}>
+                      <Text style={styles.categoryText}>{category.name}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          )}
-
-          {!canViewContent && (
-            <View style={styles.section}>
-              <View style={styles.protectedContent}>
-                <Text style={styles.protectedText}>
-                  {l10n.palsScreen.palDetailSheet.premiumPalMessage}
-                </Text>
-              </View>
-            </View>
-          )}
-        </Sheet.ScrollView>
-
-        <Sheet.Actions>
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          {/* Show action button for free pals (regardless of ownership) or owned premium pals */}
-          {actionText &&
-            (displayPal.price_cents === 0 ||
-              (displayPal.price_cents > 0 && displayPal.is_owned)) && (
-              <>
-                {isDownloaded ? (
-                  <Button
-                    testID="downloaded-button"
-                    mode="contained"
-                    disabled
-                    icon={() => (
-                      <DownloadIcon stroke={theme.colors.onPrimary} />
-                    )}
-                    style={styles.primaryButton}>
-                    {l10n.palsScreen.palDetailSheet.downloaded}
-                  </Button>
-                ) : (
-                  <Button
-                    testID="download-button"
-                    mode="contained"
-                    onPress={handleAction}
-                    loading={isLoading}
-                    icon={() => (
-                      <DownloadIcon stroke={theme.colors.onPrimary} />
-                    )}
-                    style={styles.primaryButton}>
-                    {actionText}
-                  </Button>
-                )}
-              </>
             )}
 
-          {/* Show buy button (US) or informational text (non-US) for premium pals */}
-          {palLabel.type === 'premium' &&
-            !displayPal.is_owned &&
-            (palStore.isUSRegion ? (
-              <Button
-                testID="buy-button"
-                mode="contained"
-                onPress={() =>
-                  Linking.openURL(getPalBuyUrl(displayPal.id)).catch(() => {})
-                }
-                style={styles.primaryButton}>
-                {l10n.palsScreen.palDetailSheet.buyOnPalshub}
-              </Button>
-            ) : (
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoText}>{getPremiumInfoText()}</Text>
+            {displayPal.tags && displayPal.tags.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  {l10n.palsScreen.palDetailSheet.tags}
+                </Text>
+                <View style={styles.tagsContainer}>
+                  {displayPal.tags.map((tag, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{tag.name}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            ))}
-        </Sheet.Actions>
+            )}
+
+            {canViewContent && displayPal.system_prompt && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  {l10n.palsScreen.palDetailSheet.systemPrompt}
+                </Text>
+                <View style={styles.systemPromptContainer}>
+                  <Text style={styles.systemPrompt}>
+                    {displayPal.system_prompt}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {!canViewContent && (
+              <View style={styles.section}>
+                <View style={styles.protectedContent}>
+                  <Text style={styles.protectedText}>
+                    {l10n.palsScreen.palDetailSheet.premiumPalMessage}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </Sheet.ScrollView>
+        ) : (
+          <EmploymentContract
+            palName={displayPal.title}
+            palId={displayPal.id}
+            price={palLabel.label}
+            onSign={handleAction}
+            onCancel={() => setIsContractVisible(false)}
+            isLoading={isLoading}
+          />
+        )}
+
+        {!isContractVisible && (
+          <Sheet.Actions>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {/* Show action button for free pals (regardless of ownership) or owned premium pals */}
+            {actionText &&
+              (displayPal.price_cents === 0 ||
+                (displayPal.price_cents > 0 && displayPal.is_owned)) && (
+                <>
+                  {isDownloaded ? (
+                    <Button
+                      testID="downloaded-button"
+                      mode="contained"
+                      disabled
+                      icon={() => (
+                        <DownloadIcon stroke={theme.colors.onPrimary} />
+                      )}
+                      style={styles.primaryButton}>
+                      {l10n.palsScreen.palDetailSheet.downloaded}
+                    </Button>
+                  ) : (
+                    <Button
+                      testID="download-button"
+                      mode="contained"
+                      onPress={handleAction}
+                      loading={isLoading}
+                      icon={() => (
+                        <DownloadIcon stroke={theme.colors.onPrimary} />
+                      )}
+                      style={styles.primaryButton}>
+                      {actionText}
+                    </Button>
+                  )}
+                </>
+              )}
+
+            {/* Show buy button (US) or informational text (non-US) for premium pals */}
+            {palLabel.type === 'premium' &&
+              !displayPal.is_owned &&
+              (palStore.isUSRegion ? (
+                <Button
+                  testID="buy-button"
+                  mode="contained"
+                  onPress={() =>
+                    Linking.openURL(getPalBuyUrl(displayPal.id)).catch(() => {})
+                  }
+                  style={styles.primaryButton}>
+                  {l10n.palsScreen.palDetailSheet.buyOnPalshub}
+                </Button>
+              ) : (
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoText}>{getPremiumInfoText()}</Text>
+                </View>
+              ))}
+          </Sheet.Actions>
+        )}
       </Sheet>
     );
   },

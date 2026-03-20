@@ -1,0 +1,275 @@
+Kusmus High-Level Architecture (With Proprietary Definitions & Tech Stack)
+
+![Kusmus AI Architecture](docs/images/kusmus_architecture.png)
+
+---
+
+1️⃣ Application Layer (UI / Client)
+
+Purpose: Entry point for users to launch, manage, and monitor AI agents and pods.
+
+Components:
+
+Kusmus App / kusbot UI
+
+Launch pods (your proprietary AI training and execution environments)
+
+Monitor agent behavior and RL progress
+
+Manage datasets and fine-tuning tasks
+
+Display metrics, logs, and action history
+
+Device Integrations
+
+Access local files, apps, sensors through Iron Claw
+
+Tech Stack:
+
+Flutter / React Native / Kotlin / Swift for mobile
+
+Electron / Tauri / Rust + Webview for desktop
+
+React / Vue / Svelte for web
+
+Tailwind CSS + shadcn/ui for UI components
+
+Redux / Zustand / React Query for state management
+
+---
+
+2️⃣ Pod Management & Orchestration Layer (Control Plane)
+
+Purpose: Deploy, schedule, and manage your proprietary “pods”.
+
+Your Pod Definition:
+
+> A pod in Kusmus is a self-contained AI environment that includes:
+
+Base model (LLM or agent)
+
+Fine-tuning configuration
+
+RL training scripts
+
+Dataset connectors
+
+Evaluation metrics
+
+Different from general “pods” in Kubernetes, your pods are AI training + execution units, not just containers.
+
+Components:
+
+Pod Manager
+
+Tracks versions & dependencies of pods
+
+Handles updates, rollback, and composability
+
+Job Scheduler
+
+Allocates compute resources dynamically
+
+Manages RL episodes and fine-tuning tasks
+
+Model Registry
+
+Stores fine-tuned model weights
+
+Keeps pod metadata, version history, and reproducibility info
+
+Metrics & Logging
+
+Tracks RL rewards, agent actions, and pod performance
+
+Tech Stack:
+
+Kubernetes / Nomad / Custom Rust orchestrator
+
+FastAPI / Node.js / Rust Actix backend
+
+PostgreSQL / MySQL for pod registry & metadata
+
+Prometheus + Grafana for metrics
+
+RabbitMQ / Kafka / NATS for inter-service messaging
+
+---
+
+3️⃣ Pod Runtime Layer (Data Plane)
+
+Purpose: Execute your pods, training loops, and RL workflows.
+
+Components:
+
+Pods (Kusmus definition)
+
+Contain fine-tunable AI models
+
+Include training scripts, RL loops, and dataset connectors
+
+Versioned and composable — can reference other pods as modules
+
+Training & RL Execution
+
+Fine-tune models locally or on cloud GPUs
+
+Execute RL feedback loops for agentic learning
+
+Inter-Pod Communication
+
+Share datasets or intermediate results between pods
+
+Tech Stack:
+
+Docker / Podman / WasmEdge for portable pods
+
+PyTorch, TensorFlow, Hugging Face Transformers for AI
+
+RLlib, Stable Baselines3, or OpenAI Gym for RL
+
+Pandas, Arrow, SQLite / DuckDB for datasets
+
+ONNX / PyTorch .pt / TensorFlow SavedModel for model serialization
+
+---
+
+4️⃣ Secure Agent Execution Layer (Iron Claw)
+
+Purpose: Enable your models to act as fully autonomous agents safely.
+
+Your Iron Claw Definition:
+
+> Iron Claw is a security and execution engine that:
+
+Wraps AI agents in a sandboxed environment
+
+Grants controlled access to system apps (email, WhatsApp, local files)
+
+Protects credentials and prevents data exfiltration
+
+Logs agent actions for reinforcement learning feedback
+
+Components:
+
+WASM Sandboxing
+
+Each agentic tool executes in isolated containers
+
+Credential Vault
+
+Secrets injected only to allowed actions
+
+Allowlisted App Access
+
+Network requests, apps, and device actions are controlled
+
+RL Feedback Integration
+
+Logs actions for training pods
+
+Tech Stack:
+
+Rust-based runtime
+
+Wasmtime / Wasmer for sandboxing
+
+HashiCorp Vault or custom encrypted secret store
+
+Policy enforcement engine for capabilities
+
+Proxy or allowlist for network requests
+
+---
+
+5️⃣ Compute Layer (Execution Infrastructure)
+
+Purpose: Actual CPU/GPU resources for training, RL, and inference.
+
+Components:
+
+Local device GPU/CPU
+
+Enterprise clusters / private GPU nodes
+
+Cloud GPU providers (Google Cloud, AWS, Azure)
+
+Distributed training via PyTorch Distributed, DeepSpeed, Ray
+
+---
+
+6️⃣ Data & Storage Layer
+
+Purpose: Store datasets, RL logs, model weights, and pod states.
+
+Components:
+
+Persistent storage
+
+S3 / MinIO / Google Cloud Storage / Azure Blob Storage
+
+Database
+
+PostgreSQL / MongoDB / Redis for caching
+
+RL Feedback & Logs
+
+Loki / ELK / Prometheus
+
+Sandboxed local FS
+
+OverlayFS or WASM virtual FS
+
+---
+
+7️⃣ High-Level Workflow (With Your Terms)
+
+User App / kusbot UI
+   ↓
+Pod Manager / Control Plane
+   ↓
+Pod Runtime (your proprietary pods)
+   ↓
+Iron Claw (agentic execution)
+   ↓
+Compute Layer (Local/Cloud/Enterprise GPU)
+   ↓
+Data Layer (Datasets, RL logs, Model Weights)
+
+Key Notes:
+
+Pods = self-contained AI training + execution environments
+
+Iron Claw = agentic runtime + security layer
+
+kusbot = orchestrator + agent runtime
+
+Users can fine-tune models, run RL agents, and execute tasks on real apps safely
+
+---
+
+8️⃣ Strategic Advantages
+
+True agentic AI — can read emails, WhatsApp, and act on device
+
+Secure & auditable — credentials, data, and actions controlled by Iron Claw
+
+Composable & versioned pods — reusable AI environments for enterprise or personal use
+
+Hybrid compute — pods run anywhere (local/cloud/enterprise)
+
+Scalable RL & fine-tuning workflows — continuous improvement possible
+
+---
+
+If you want, I can now draw a fully labeled visual diagram showing:
+
+Proprietary pods
+
+kusbot orchestration
+
+Iron Claw agentic execution
+
+Hybrid compute layer
+
+Data & RL feedback laye
